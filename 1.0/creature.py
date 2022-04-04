@@ -11,7 +11,7 @@ class Creature(Entity):
         self.del_todo = []  # 要删除的todo
         self.gene_name = []
         if gene and globals.generec:
-            globals.generec.add_gene(gene)
+            globals.generec.add_gene(self,gene)
 
     def add_todo(self, t, w=None, a=None, *args):
         '''添加todo,不会重复添加'''

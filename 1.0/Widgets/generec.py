@@ -18,9 +18,9 @@ class GeneRec(BaseWidget):
     def resizeEvent(self, a0) -> None:
         self.genes.resize(self.width(), self.height())
 
-    def add_gene(self, gene):
+    def add_gene(self, creature, gene):
         '''添加基因'''
-        _gene = '-'.join(map(str, gene))
+        _gene = creature.__class__.__name__+':'+'-'.join(map(str, gene))
         if _gene not in self.record_genes:
             self.genes.addItem('-'.join(map(str, gene)))
             self.record_genes.append(_gene)

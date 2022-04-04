@@ -1,6 +1,9 @@
 from ctypes.wintypes import tagRECT
 from itertools import count
 from random import randint
+import time
+from Algorithm.pathfinding import find_path
+from Other.water import Water
 from creature import *
 from threading import Thread
 import globals
@@ -40,14 +43,14 @@ class Animal(Creature):
         self.sub_hungry = 100
         self.sub_thirty = 100
         # 最大的饥饿度和口渴度,超出这些会死亡
-        self.max_hungry = 1000
-        self.max_thirty = 1000
+        self.max_hungry = 200
+        self.max_thirty = 200
 
         self.speed = 10  # 速度,也是每个循环等待的时间
 
         self.reproduction_wish = 0  # 生殖欲望
         self.max_reproduction_wish = 50  # 最大生殖欲望
-        self.reproduction_num = 5  # 一次繁殖可以生的数量
+        self.reproduction_num = 3  # 一次繁殖可以生的数量
         self.reproduction_target = None  # 繁殖对象
 
         if gene:
@@ -61,6 +64,28 @@ class Animal(Creature):
 
     def action(self):
         '''行动'''
+        while True:
+            if self.die:
+                break
+            self.one_step()
+            time.sleep(self.speed/100)
+
+    def one_step(self):
+        '''执行一步'''
+        if self.thirty > self.max_thirty or self.hungry > self.max_hungry:  # 太饿或太渴会导致死亡
+            self.kill()
+        # 在做其他事的时侯不能繁殖
+        if self.reproduction_wish > self.max_reproduction_wish and len(self.todo) == 0:
+            self.reproduction_wish = 0
+            self.reproduction()
+        self.reproduction_wish += 1
+
+        if self.todo:
+            # 做它要做的事
+            self.do_todo()
+        else:
+            # 随机移动
+            self.rand_move()
 
     def get_sight(self):
         '''获取视野中的东西'''
@@ -119,6 +144,8 @@ class Animal(Creature):
     def check_move(self, x, y):
         '''检查移动是否合法'''
         map = globals.map
+        if map.has_entity(Water, x, y):
+            return False
         if x < 0 or y < 0:
             return False
         if x >= len(map) or y >= len(map):
@@ -132,48 +159,21 @@ class Animal(Creature):
 
     def move_toward(self, x, y):
         '''朝一个地方移动'''
-        # 确立每次移动的方向
-        t = self.x-x
-        if t > 0:
-            dx = -1
-        elif t == 0:
-            dx = 0
-        elif t < 0:
-            dx = 1
-        t = self.y-y
-        if t > 0:
-            dy = -1
-        elif t == 0:
-            dy = 0
-        elif t < 0:
-            dy = 1
-
-        cm = self.check_move(x, y)
-
-        while True:
-            m = self.move(dx, dy)
-            if not m:  # 被阻挡
-                self.rand_move()
-            if cm:  # 可以直接到达
-                if self.x == x:
-                    dx = 0
-                if self.y == y:
-                    dy = 0
-            else:  # 不可以直接到达就到旁边
-                for i in (1, 0, -1):
-                    for j in (1, 0, -1):
-                        if self.x == x+i:
-                            dx = 0
-                        if self.y == y+j:
-                            dy = 0
-            if dx == dy == 0:
-                break
-            yield  # 作为一个迭代器
+        obs = globals.map.get_obs()
+        move_way = find_path(
+            len(globals.map), (self.x, self.y), (x, y), obs)  # 查找路径
+        if move_way == None:
+            return
+        for _x, _y in move_way:
+            dx = _x-self.x
+            dy = _y-self.y
+            self.move(dx, dy)
+            yield
 
     def reproduction(self):
         '''生殖'''
         a = self.get_insight(self.__class__)
-        if a:  # 找到同类
+        if a and a != self:  # 找到同类(不能跟自己繁殖)
             b = a.reproduction_req(self)
             if b:  # 如果同意了
                 for i in range(self.reproduction_num):
@@ -185,6 +185,8 @@ class Animal(Creature):
     def reproduction_req(self, target):
         '''生殖请求'''
         if self.reproduction_target:  # 一次只能搞一个
+            return False
+        if self.hungry > self.safe_hungry or self.thirty > self.safe_thirty:
             return False
         self.reproduction_target = target
         return True

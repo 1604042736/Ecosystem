@@ -18,7 +18,7 @@ class Map(list):
         x, y = entity.x, entity.y
         self[x][y].append(entity)
 
-        name=entity.__class__.__name__
+        name = entity.__class__.__name__
         if name not in self.count:
             self.count[name] = 0
         self.count[name] += 1
@@ -26,10 +26,9 @@ class Map(list):
     def del_entity(self, entity):
         '''删除实体'''
         x, y = entity.x, entity.y
-        
         self[x][y].remove(entity)
-        
-        name=entity.__class__.__name__
+
+        name = entity.__class__.__name__
         self.count[name] -= 1
 
     def move_entity(self, entity, x, y):
@@ -59,3 +58,19 @@ class Map(list):
                         Grass(x, y)
                     else:
                         Ground(x, y)
+
+    def get_obs(self, obs=(Water,)):
+        '''获得障碍物的位置'''
+        result = []
+        # 遍历地图找到障碍
+        for ix, x in enumerate(self):
+            for iy, y in enumerate(x):
+                for e in y:
+                    for o in obs:
+                        if isinstance(e, o):
+                            result.append((ix, iy))
+                            break
+                    else:
+                        continue
+                    break
+        return result

@@ -1,5 +1,6 @@
 from pprint import pprint
 import sys
+from Animal.fox import Fox
 from Animal.rabbit import Rabbit
 import globals
 from Widgets.mainwindow import *
@@ -11,8 +12,10 @@ def main():
     globals.map = Map([[[]for i in range(map_size)]for j in range(map_size)])
     globals.map.create_world()
     globals.map.camera = [int(map_size/2), int(map_size/2)]
-    Rabbit(0, 0)
-    Rabbit(1, 0)
+    for i in range(20):
+        Rabbit(0, 0)
+    for i in range(5):
+        Fox(0, 0)
 
     globals.app = QApplication(sys.argv)
     globals.mainwindow = MainWindow()
